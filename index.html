@@ -1,11 +1,292 @@
-<button onclick="document.getElementById('img').click()">+ Add image</button>
-<input id="img" type="file" accept="image/*" hidden>
+OCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Ảnh Sự Kiện</title>
+    <style>
+        /* --- Cấu hình chung & Giao diện --- */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+        }
 
-<div id="preview"></div>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-<script>
-img.onchange = e => {
-  const file = e.target.files[0];
-  if (file) preview.innerHTML = `<img src="${URL.createObjectURL(file)}" width="300">`;
-};
-</script>
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- Tiêu đề sự kiện --- */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        /* --- Khu vực nút bấm điều khiển --- */
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .upload-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* --- Lưới hiển thị ảnh sự kiện --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .gallery-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            aspect-ratio: 4 / 3;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        /* --- Nút xóa ảnh --- */
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #ef4444;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            font-weight: bold;
+            line-height: 32px;
+            text-align: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease, background 0.2s ease;
+            z-index: 2;
+        }
+
+        .gallery-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: #ffffff;
+            color: #dc2626;
+        }
+
+        /* --- Trình xem ảnh phóng to (Lightbox) --- */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 85%;
+            border-radius: 4px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .lightbox.active .lightbox-img {
+            transform: scale(1);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 300;
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Khung tiêu đề -->
+        <header>
+            <h1>Ảnh Sự Kiện</h1>
+            <p>Kho lưu trữ và chia sẻ những khoảnh khắc đáng nhớ</p>
+        </header>
+
+        <!-- Thanh điều khiển thêm ảnh -->
+        <div class="controls">
+            <button class="upload-btn" onclick="triggerUpload()">
+                <span>+</span> Thêm ảnh sự kiện
+            </button>
+            <!-- Cho phép chọn nhiều ảnh cùng lúc bằng thuộc tính multiple -->
+            <input type="file" id="file-input" accept="image/*" multiple onchange="handleImages(event)">
+        </div>
+
+        <!-- Lưới danh sách hình ảnh -->
+        <div class="gallery-grid" id="gallery-grid">
+            <!-- Các bức ảnh tải lên sẽ tự động chèn vào đây -->
+        </div>
+    </div>
+
+    <!-- Hộp thoại phóng to hình ảnh -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+        <span class="lightbox-close">&times;</span>
+        <img class="lightbox-img" id="lightbox-img" src="" alt="Ảnh phóng to">
+    </div>
+
+    <script>
+        const galleryGrid = document.getElementById('gallery-grid');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        // Kích hoạt cửa sổ chọn file của hệ thống
+        function triggerUpload() {
+            document.getElementById('file-input').click();
+        }
+
+        // Xử lý đọc file và tạo giao diện hiển thị ảnh
+        function handleImages(event) {
+            const files = event.target.files;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue; // Chỉ xử lý nếu là file ảnh
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Tạo khung chứa item ảnh
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    
+                    // Tạo thẻ hình ảnh
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Ảnh sự kiện';
+                    // Nhấp vào ảnh để xem phóng to
+                    img.onclick = () => openLightbox(e.target.result);
+
+                    // Tạo nút xóa ảnh
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.innerHTML = '&times;';
+                    deleteBtn.onclick = (event) => {
+                        event.stopPropagation(); // Ngăn sự kiện phóng to ảnh kích hoạt
+                        item.remove();
+                    };
+
+                    // Chèn các thẻ vào lưới hiển thị
+                    item.appendChild(img);
+                    item.appendChild(deleteBtn);
+                    galleryGrid.appendChild(item);
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            // Reset giá trị để có thể chọn lại cùng một file ảnh nếu cần
+            event.target.value = '';
+        }
+
+        // Mở hộp thoại xem ảnh lớn
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.add('active');
+        }
+
+        // Đóng hộp thoại xem ảnh lớn
+        function closeLightbox(event) {
+            // Đóng khi bấm vào nút X hoặc vùng nền tối ngoài ảnh
+            if (event.target.id === 'lightbox' || event.target.className === 'lightbox-close') {
+                lightbox.classList.remove('active');
+                setTimeout(() => { lightboxImg.src = ''; }, 300); // Reset ảnh sau khi đóng mượt mà
+            }
+        }
+    </script>
+</body>
+</html>
