@@ -1,1 +1,11 @@
+<button onclick="document.getElementById('img').click()">+ Add image</button>
+<input id="img" type="file" accept="image/*" hidden>
 
+<div id="preview"></div>
+
+<script>
+img.onchange = e => {
+  const file = e.target.files[0];
+  if (file) preview.innerHTML = `<img src="${URL.createObjectURL(file)}" width="300">`;
+};
+</script>
